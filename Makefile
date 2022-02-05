@@ -100,4 +100,4 @@ esrec: $(PRG)_eeprom.srec
  || { echo empty $@ not generated; exit 0; }
 
 upload: all
-	sudo avrdude -p m8515 -c dapa -U flash:w:send_temperature.hex
+	sudo avrdude -B 200 -i 200 -p m8515 -c dapa -U flash:w:send_temperature.hex

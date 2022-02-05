@@ -1,4 +1,4 @@
-#define F_CPU 1000000
+#define F_CPU 32768
 
 #include <avr/interrupt.h>
 #include <avr/io.h>
@@ -9,7 +9,7 @@
 
 ISR (TIMER1_COMPA_vect)
 {
-  // Do nothing
+  // Do nothing, just wake up from sleep
 }
 
 static uint8_t bytes[6];
@@ -30,69 +30,147 @@ void update_packet_temperature()
 
   bytes[1] = (bytes[1] & 0xF0) | (encoded_temperature >> 8);
   bytes[2] = encoded_temperature & 0xFF;
+  // xor checksum
   bytes[4] = bytes[0] ^ bytes[1] ^ bytes[2] ^ bytes[3];
+  // sum checksum
   uint16_t sum = bytes[0] + bytes[1] + bytes[2] + bytes[3];
   bytes[5] = (sum + (sum >> 8) + bytes[4]) & 0xFF;
   temperature += 0.1;
+  if (temperature > 70) {
+    temperature = -40;
+  }
 }
 
-void send_sync()
+static inline void set_output_high()
 {
-  for (int i = 0; i < 8; ++i) {
-    PORTC |= (1 << PORTC7);
-    _delay_us(400);
-    PORTC &= ~(1 << PORTC7);
-    _delay_us(600);
-  }
+  PORTC |= 1 << PORTC7;
+}
 
-  PORTC |= (1 << PORTC7);
-  _delay_us(9600);
+static inline void set_output_low()
+{
   PORTC &= ~(1 << PORTC7);
-  _delay_us(5000);
+}
+
+// When running the system at 32 kHz there aren't any spare clock
+// cycles to do anything else than send data when we're sending the
+// data. For example.. Trying to use loops when sending identical data
+// introduces unexpected delays as the loop variables are incremented
+// and compared. I tried to do calculations while we're idling,
+// waiting for the next pulse to be sent, but the time is not enough
+// to do the calculations.
+//
+// So, all loops are unrolled below and the delays have not been
+// calculated but determined from experimentation.
+static inline void send_sync()
+{
+  set_output_high(); _delay_loop_1(4); // 400 us, 100@250 kHz
+  set_output_low(); _delay_loop_1(6); // 600 us, 150@250 kHz
+  set_output_high(); _delay_loop_1(4);
+  set_output_low(); _delay_loop_1(6);
+  set_output_high(); _delay_loop_1(4);
+  set_output_low(); _delay_loop_1(6);
+  set_output_high(); _delay_loop_1(4);
+  set_output_low(); _delay_loop_1(6);
+  set_output_high(); _delay_loop_1(4);
+  set_output_low(); _delay_loop_1(6);
+  set_output_high(); _delay_loop_1(4);
+  set_output_low(); _delay_loop_1(6);
+  set_output_high(); _delay_loop_1(4);
+  set_output_low(); _delay_loop_1(6);
+  set_output_high(); _delay_loop_1(4);
+  set_output_low(); _delay_loop_1(6);
+
+  set_output_high(); _delay_loop_1(104); // 9600 us, 2400@250 kHz
+  set_output_low(); _delay_loop_1(51); // 5000 us, 1250@250 kHz
 }
 
 static inline void send_one()
 {
-  PORTC |= (1 << PORTC7);
-  _delay_us(800);
-  PORTC &= ~(1 << PORTC7);
-  _delay_us(680);
+  set_output_high(); _delay_loop_1(8); // 800 us, 200@250 kHz
+  set_output_low(); _delay_loop_1(3); // 680 us, 170@250 kHz
 }
 
 static inline void send_zero()
 {
-  PORTC |= (1 << PORTC7);
-  _delay_us(1800);
-  PORTC &= ~(1 << PORTC7);
-  _delay_us(1120);
+  set_output_high(); _delay_loop_1(19); // 1800 us, 450@250 kHz
+  set_output_low(); _delay_loop_1(8); // 1120 us, 280@250 kHz
 }
 
 void send_packet()
 {
-  send_sync();
+  void (*send_bit_fn[49])();
   for (int i = 0; i < 6; i++) {
     for (int j = 7; j >= 0; j--) {
       if (bytes[i] & (1 << j)) {
-	send_one();
+	send_bit_fn[i*8 + 7 - j] = &send_one;
       }
       else {
-	send_zero();
+	send_bit_fn[i*8 + 7 - j] = &send_zero;
       }
     }
   }
-  send_one();
+  send_bit_fn[48] = &send_one;
+
+  send_sync();
+  send_bit_fn[0]();
+  send_bit_fn[1]();
+  send_bit_fn[2]();
+  send_bit_fn[3]();
+  send_bit_fn[4]();
+  send_bit_fn[5]();
+  send_bit_fn[6]();
+  send_bit_fn[7]();
+  send_bit_fn[8]();
+  send_bit_fn[9]();
+  send_bit_fn[10]();
+  send_bit_fn[11]();
+  send_bit_fn[12]();
+  send_bit_fn[13]();
+  send_bit_fn[14]();
+  send_bit_fn[15]();
+  send_bit_fn[16]();
+  send_bit_fn[17]();
+  send_bit_fn[18]();
+  send_bit_fn[19]();
+  send_bit_fn[20]();
+  send_bit_fn[21]();
+  send_bit_fn[22]();
+  send_bit_fn[23]();
+  send_bit_fn[24]();
+  send_bit_fn[25]();
+  send_bit_fn[26]();
+  send_bit_fn[27]();
+  send_bit_fn[28]();
+  send_bit_fn[29]();
+  send_bit_fn[30]();
+  send_bit_fn[31]();
+  send_bit_fn[32]();
+  send_bit_fn[33]();
+  send_bit_fn[34]();
+  send_bit_fn[35]();
+  send_bit_fn[36]();
+  send_bit_fn[37]();
+  send_bit_fn[38]();
+  send_bit_fn[39]();
+  send_bit_fn[40]();
+  send_bit_fn[41]();
+  send_bit_fn[42]();
+  send_bit_fn[43]();
+  send_bit_fn[44]();
+  send_bit_fn[45]();
+  send_bit_fn[46]();
+  send_bit_fn[47]();
+  send_bit_fn[48]();
   _delay_ms(28);
 }
 
 int main()
 {
-  DDRC |= (1 << DDC7);    // Make pin 28 be an output.
-
+ // Make pin 28 an output
+  DDRC |= 1 << DDC7;
+  
   // Disable analog comparator
   ACSR |= 1 << ACD;
-  // Disable watchdog TODO: Disabling the watchdog seems to break things. Why?
-  /* WDTCR |= (1 << WDCE) | (1 << WDE); */
-  // Disable brown out detector?
   
   // Set timer CTC mode with TOP in OCR1A register    
   TCCR1B |= 1 << WGM12;
@@ -104,13 +182,13 @@ int main()
   TCCR1B |= 1 << CS12;
 
   // TIMER TOP value
-  OCR1A = 28990; // 30 seconds. Measured, but varies with temperature/voltage
+  OCR1A = 30 * 32768/1024; // 30 seconds
 
   // Set timer to reach TOP soon
-  TCNT1 = 25000;
+  TCNT1 = OCR1A * 0.9;
 
   // Enable interrupt on compare match
-  TIMSK |= (1 << OCIE1A);
+  TIMSK |= 1 << OCIE1A;
   sei();
 
   set_sleep_mode(SLEEP_MODE_IDLE);
