@@ -1,26 +1,35 @@
-# Pool thermometer transmitter (wt0122 / wt0124)
+# Pool thermometer transmitter
 
 This is a 433 MHz data transmitter which uses the same data protocol
-as the pool thermometers wt0122 and wt0124.
+as a Rubicson pool thermometer.
 
 I've used an atmega8515 connected to a 433 MHz transmitter to
-communicate with a real display from a wt0122 unit.
+communicate with a Rubicson pool thermometer display.
 
-It works, but after some time the display loses synchronization with
-the sender and it stops displaying temperatures. The problem is that
-the display doesn't accept any clock drift at the transmitter side and
-requires that the sender sends data exactly every 30 seconds. At the
-moment I'm using the internal clock of the atmega8515, but it's not
-accurate enough (+-3%) to lock transmissions to every 30 seconds -
-transmissions drift in time.
+It works, but sometimes the display loses synchronization with
+the sender. When synchronization is lost it seems like synchronization is
+restored again after some time.
 
 ## Display behaviour
 
-Here are some notes and observations of the wt0122 display.
+Here are some notes and observations of the pool thermometer's display.
 
 * When first turned on, the display will listen for transmissions
-  continuously for 3 minutes. If a transmission is detected it will
+  continuously for ~5 minutes. If a transmission is detected it will
   remember the time for the transmission.
+
+* The display supports (displays) temperatures between -50.0 and +70.0 C
+
+
+
+
+
+
+
+
+
+
+Need to check the behaviours below:
 
 * After the initial 3 minutes the display will listen for
   transmissions only every N*30 seconds after the transmission it
@@ -42,5 +51,3 @@ Here are some notes and observations of the wt0122 display.
 
 * When data has been received and properly decoded an antenna symbol
   flashes on the screen.
-
-* Minimum temperature the display supports (displays) is -40.0 C
