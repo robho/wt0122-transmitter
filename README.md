@@ -43,4 +43,4 @@ Here are some notes and observations of the wt0122 display.
 * When data has been received and properly decoded an antenna symbol
   flashes on the screen.
 
-* Minimum temperature the display supports (displays) is -40.0 C
+* The display only shows temperatures between -40.0 C and +70.0 C.
