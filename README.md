@@ -1,4 +1,4 @@
-# Pool thermometer transmitter (Rubicson pool thermometer)
+# Pool thermometer transmitter
 
 This is a 433 MHz data transmitter which uses the same data protocol
 as a Rubicson pool thermometer.
@@ -19,9 +19,9 @@ Here are some notes and observations of the pool thermometer's display.
 * When first turned on, the display will listen for transmissions
   continuously for ~5 minutes. If a transmission is detected it will
   remember the time for the transmission and then listen for a new
-  transmission every 55 + <channel number> seconds. If no transmission
+  transmission every (55 + channel number) seconds. If no transmission
   is detected in 5 minutes the display still stop listen continuously
-  and instead only listen every 55 + <channel number> seconds.
+  and instead only listen every (55 + channel number) seconds.
 
 * The display only displays temperatures between -50.0 and +70.0 C.
 
