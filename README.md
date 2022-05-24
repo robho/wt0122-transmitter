@@ -1,14 +1,16 @@
-# Pool thermometer transmitter
+# Pool thermometer transmitter (Rubicson pool thermometer)
 
 This is a 433 MHz data transmitter which uses the same data protocol
 as a Rubicson pool thermometer.
 
 I've used an atmega8515 connected to a 433 MHz transmitter to
-communicate with a Rubicson pool thermometer display.
+communicate with a real pool thermometer display.
 
-It works, but sometimes the display loses synchronization with
-the sender. When synchronization is lost it seems like synchronization is
-restored again after some time.
+The Rubicson thermometer display correctly decodes the data sent,
+but without a reliable clock source it seems like the transmitter and
+display eventually lose their synchronization and the display then
+misses transmissions. The display seems to re-synchronize after some
+time.
 
 ## Display behaviour
 
@@ -16,38 +18,32 @@ Here are some notes and observations of the pool thermometer's display.
 
 * When first turned on, the display will listen for transmissions
   continuously for ~5 minutes. If a transmission is detected it will
-  remember the time for the transmission.
+  remember the time for the transmission and then listen for a new
+  transmission every 55 + <channel number> seconds. If no transmission
+  is detected in 5 minutes the display still stop listen continuously
+  and instead only listen every 55 + <channel number> seconds.
 
-* The display supports (displays) temperatures between -50.0 and +70.0 C
+* The display only displays temperatures between -50.0 and +70.0 C.
 
+* If no temperature data is received for 60 minutes the display shows "Er",
+  but recovers if transmissions start again.
 
+* When the display listens for a transmission on the selected channel an
+  antenna symbol flashes on the screen.
 
+* If a transmission is missed the display will turn off a "signal strength"
+  symbol.
 
+## Power consumption
 
+An atmega8515 running at 1 MHz, with 5 V VCC and connected to a 433 MHz
+transmitter draws around 0.78 mA when it's in sleep mode. Deeper sleep
+would be possible if an external signal is used to trigger an interrupt.
 
+The atmega8515 datasheet says that ~0.5 mA should be possible with 5 V VCC
+and a clock frequency of 1 MHz. Can anything else be shut down to save power?
 
+If the device is transmitting continuously the current draw is ~9 mA.
 
-
-
-Need to check the behaviours below:
-
-* After the initial 3 minutes the display will listen for
-  transmissions only every N*30 seconds after the transmission it
-  detected in the initial 3 minute period. The display will listen for
-  data for only a short period of time (1-2 seconds).
-
-* In addition to the listen window described above the display also
-  seems to wake up at second 0 and 30 according to its internal
-  clock. If a transmission is received in these windows, then the
-  display will stop listening for data in the previously discovered
-  windows. Very strange behaviour.
-
-* If no temperature readings are received for 3 minutes the display
-  shows "--.-".
-
-* If the display loses connection with the transmitter it will not try
-  to recover by listening for transmissions for a longer time or at
-  different times.
-
-* When data has been received and properly decoded an antenna symbol
-  flashes on the screen.
+The current measurements were made with a cheap multimeter and could be
+inaccurate.

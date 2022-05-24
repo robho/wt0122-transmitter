@@ -7,17 +7,32 @@
 #include <util/delay.h>
 #include <stdint.h>
 
-const unsigned DEVICE_ID = 0xab7;
+const unsigned DEVICE_ID = 682; // 1-1023
 const unsigned DEVICE_CHANNEL = 2; // 1-8
 
+/*
+Rubicson pool thermometer packet format:
+
+    71       ba       4e       60       ba       0
+    01110001 10111010 01001110 01100000 10111010 0
+    CCCCRRRR RRRRRR1? BTTTTTTT TTTTPPPP XXXXXXXX 0
+
+- C = channel
+- R = random device id (changes after power cycle)
+- 1 = always 1, must be 1
+- ? = unknown, any value accepted
+- B = battery low indicator
+- T = 11 bits of temperature with 1024 bias and scaled by 10
+- P = Padding / unused (transmitter sends 0000, but display doesn't care)
+- X = CRC
+*/
 
 #define RF_ON() (PORTC |= 1 << PORTC0)
 #define RF_OFF() (PORTC &= ~(1 << PORTC0))
 
-// TODO: Check the very first bit and maybe padding and random ID also
 static uint8_t bytes[5] = {
-  ((DEVICE_CHANNEL - 1) & 0x7) << 4 | DEVICE_ID >> 8,
-  DEVICE_ID & 0xff,
+  (DEVICE_CHANNEL - 1) << 4 | DEVICE_ID >> 6,
+  DEVICE_ID << 2 | 0x2,
   0, // battery low flag + temperature msb
   0, // temperature lsb + zero padding
   0}; // crc
@@ -27,7 +42,7 @@ ISR (TIMER1_COMPA_vect)
   // Do nothing
 }
 
-inline uint8_t crc8(uint8_t const message[], unsigned nBytes, 
+inline uint8_t crc8(uint8_t const message[], unsigned nBytes,
 		    uint8_t polynomial, uint8_t init)
 {
   uint8_t remainder = init;
@@ -60,7 +75,8 @@ static inline void update_packet_temperature()
   bytes[4] = crc8(bytes, 4, 0x31, 0x00);
 }
 
-// TODO: Is it necessary?
+// Sending the preamble seems unnecessary. The display decodes the signal
+// even without the preamble. But, maybe it improves reliability?
 static inline void send_preamble()
 {
   RF_ON();
@@ -130,9 +146,10 @@ int main()
   PORTD = 0xFF;
   PORTE = 0x07;
 
-  DDRB |= 1 << DDB0;
+  // PC0 is the RF output pin
+  DDRC |= 1 << DDC0;
 
-  // Set timer CTC mode with TOP in OCR1A register    
+  // Set timer CTC mode with TOP in OCR1A register
   TCCR1B |= 1 << WGM12;
   TCCR1B &= ~(1 << WGM13);
 
@@ -143,10 +160,10 @@ int main()
 
   // TIMER TOP value
   OCR1A = 968 * (55 + DEVICE_CHANNEL);
-  OCR1A = 55164; // 57 seconds, channel 2
+  //OCR1A = 55164; // 57 seconds, channel 2
 
   // Set timer to reach TOP soon
-  TCNT1 = 50000;
+  TCNT1 = OCR1A - 2000;
 
   // Enable interrupt on compare match
   TIMSK |= 1 << OCIE1A;
